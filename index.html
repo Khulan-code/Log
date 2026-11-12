@@ -1,0 +1,493 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>IDP Voice Fill</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Source+Serif+4:opsz,wght@8..60,400;8..60,600&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --paper:#F6F3EC;
+    --panel:#FFFFFF;
+    --ink:#20261F;
+    --ink-soft:#5B6157;
+    --forest:#3F6C4B;
+    --forest-dark:#2E5138;
+    --rust:#C9642A;
+    --line:#DAD5C6;
+  }
+  *{box-sizing:border-box;}
+  body{
+    margin:0;
+    background:var(--paper);
+    color:var(--ink);
+    font-family:'Inter',sans-serif;
+    line-height:1.5;
+  }
+  .wrap{
+    max-width:1040px;
+    margin:0 auto;
+    padding:32px 24px 64px;
+  }
+  header{
+    margin-bottom:28px;
+  }
+  h1{
+    font-family:'Source Serif 4',serif;
+    font-weight:600;
+    font-size:34px;
+    margin:0 0 6px;
+    letter-spacing:-0.01em;
+  }
+  header p{
+    margin:0;
+    color:var(--ink-soft);
+    font-size:15px;
+    max-width:60ch;
+  }
+  .layout{
+    display:grid;
+    grid-template-columns:1fr;
+    gap:20px;
+  }
+  @media(min-width:860px){
+    .layout{grid-template-columns:340px 1fr;align-items:start;}
+  }
+  .panel{
+    background:var(--panel);
+    border:1px solid var(--line);
+    border-radius:10px;
+    padding:22px;
+  }
+  .recorder{
+    position:sticky;
+    top:20px;
+    text-align:center;
+  }
+  .mic-btn{
+    width:88px;
+    height:88px;
+    border-radius:50%;
+    border:none;
+    background:var(--forest);
+    color:#fff;
+    cursor:pointer;
+    display:inline-flex;
+    align-items:center;
+    justify-content:center;
+    transition:background 0.15s ease;
+  }
+  .mic-btn:hover{background:var(--forest-dark);}
+  .mic-btn svg{width:32px;height:32px;}
+  .mic-btn.recording{
+    background:var(--rust);
+    animation:pulse 1.4s ease-in-out infinite;
+  }
+  @keyframes pulse{
+    0%{box-shadow:0 0 0 0 rgba(201,100,42,0.45);}
+    70%{box-shadow:0 0 0 16px rgba(201,100,42,0);}
+    100%{box-shadow:0 0 0 0 rgba(201,100,42,0);}
+  }
+  .status{
+    margin-top:14px;
+    font-size:13px;
+    color:var(--ink-soft);
+    min-height:18px;
+  }
+  .status.live{color:var(--rust);font-weight:500;}
+  audio{
+    width:100%;
+    margin-top:16px;
+    display:none;
+  }
+  .transcript-label{
+    text-align:left;
+    font-size:12px;
+    text-transform:none;
+    color:var(--ink-soft);
+    margin:22px 0 6px;
+  }
+  .transcript{
+    text-align:left;
+    background:var(--paper);
+    border:1px solid var(--line);
+    border-radius:8px;
+    padding:12px;
+    font-size:14px;
+    min-height:140px;
+    max-height:260px;
+    overflow-y:auto;
+    white-space:pre-wrap;
+  }
+  .transcript .interim{color:var(--ink-soft);}
+  .btn-row{
+    display:flex;
+    gap:8px;
+    margin-top:14px;
+  }
+  .btn{
+    flex:1;
+    padding:9px 10px;
+    font-size:13px;
+    font-family:inherit;
+    border-radius:6px;
+    border:1px solid var(--line);
+    background:#fff;
+    color:var(--ink);
+    cursor:pointer;
+  }
+  .btn:hover{border-color:var(--forest);}
+  .btn.primary{
+    background:var(--forest);
+    color:#fff;
+    border-color:var(--forest);
+  }
+  .btn.primary:hover{background:var(--forest-dark);}
+  .form-title{
+    font-family:'Source Serif 4',serif;
+    font-size:20px;
+    font-weight:600;
+    margin:0 0 4px;
+  }
+  .form-sub{
+    font-size:13px;
+    color:var(--ink-soft);
+    margin:0 0 20px;
+  }
+  .field{
+    margin-bottom:18px;
+  }
+  .field label{
+    display:block;
+    font-size:13px;
+    font-weight:500;
+    margin-bottom:6px;
+    color:var(--ink);
+  }
+  .field .hint{
+    font-weight:400;
+    color:var(--ink-soft);
+    font-size:12px;
+  }
+  .field input, .field textarea{
+    width:100%;
+    padding:10px 12px;
+    font-family:inherit;
+    font-size:14px;
+    border:1px solid var(--line);
+    border-radius:6px;
+    background:var(--paper);
+    color:var(--ink);
+    resize:vertical;
+  }
+  .field textarea{min-height:64px;}
+  .field input:focus, .field textarea:focus{
+    outline:none;
+    border-color:var(--forest);
+    background:#fff;
+  }
+  .field.filled input, .field.filled textarea{
+    border-color:var(--forest);
+    background:#fff;
+  }
+  .form-actions{
+    display:flex;
+    gap:10px;
+    margin-top:8px;
+    flex-wrap:wrap;
+  }
+  .support-note{
+    font-size:12px;
+    color:var(--ink-soft);
+    margin-top:24px;
+    padding-top:14px;
+    border-top:1px solid var(--line);
+  }
+  .support-note a{color:var(--forest);}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <h1>IDP Voice Fill</h1>
+    <p>Talk through your Individual Development Plan out loud. This records the audio, transcribes it as you speak, and drops what it hears into the right field below.</p>
+  </header>
+
+  <div class="layout">
+    <div class="panel recorder">
+      <button class="mic-btn" id="micBtn" aria-label="Start recording">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" id="micIcon">
+          <path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"></path>
+          <path d="M19 10v2a7 7 0 0 1-14 0v-2"></path>
+          <line x1="12" y1="19" x2="12" y2="23"></line>
+          <line x1="8" y1="23" x2="16" y2="23"></line>
+        </svg>
+      </button>
+      <div class="status" id="status">Tap to start</div>
+      <audio id="playback" controls></audio>
+
+      <div class="transcript-label">Transcript</div>
+      <div class="transcript" id="transcript"><span style="color:var(--ink-soft)">Nothing yet — start recording and speak naturally, e.g. "My name is Dana Kim, and my current role is support engineer. One development goal is to get better at public speaking."</span></div>
+
+      <div class="btn-row">
+        <button class="btn primary" id="parseBtn">Fill form from transcript</button>
+        <button class="btn" id="clearBtn">Clear</button>
+      </div>
+    </div>
+
+    <div class="panel">
+      <div class="form-title">Individual Development Plan</div>
+      <p class="form-sub">Fields fill in automatically as you speak. Everything stays editable — fix anything the transcript got wrong.</p>
+
+      <div class="field" id="f-name">
+        <label>Name</label>
+        <input type="text" id="name" placeholder="e.g. Dana Kim">
+      </div>
+      <div class="field" id="f-role">
+        <label>Current role <span class="hint">— say "my role is…" or "my job is…"</span></label>
+        <input type="text" id="role" placeholder="e.g. Support Engineer">
+      </div>
+      <div class="field" id="f-goals">
+        <label>Development goals <span class="hint">— say "my goal is…" or "I want to…"</span></label>
+        <textarea id="goals" placeholder="e.g. Improve public speaking and lead a project by Q2"></textarea>
+      </div>
+      <div class="field" id="f-actions">
+        <label>Action steps <span class="hint">— say "I will…" or "action steps are…"</span></label>
+        <textarea id="actions" placeholder="e.g. Join Toastmasters, shadow a lead on the next release"></textarea>
+      </div>
+      <div class="field" id="f-timeline">
+        <label>Timeline <span class="hint">— say "timeline is…" or "by [date]"</span></label>
+        <input type="text" id="timeline" placeholder="e.g. Next 6 months">
+      </div>
+      <div class="field" id="f-support">
+        <label>Support needed <span class="hint">— say "support needed is…" or "I need…"</span></label>
+        <textarea id="support" placeholder="e.g. Mentorship from my manager, budget for a course"></textarea>
+      </div>
+
+      <div class="form-actions">
+        <button class="btn" id="downloadBtn">Download as text</button>
+      </div>
+
+      <div class="support-note">
+        Speech-to-text uses your browser's built-in recognition (Web Speech API), which currently only works in Chrome, Edge, and a few other Chromium-based browsers, and needs mic permission. Audio is recorded locally in your browser and never leaves your device.
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+const micBtn = document.getElementById('micBtn');
+const statusEl = document.getElementById('status');
+const transcriptEl = document.getElementById('transcript');
+const playback = document.getElementById('playback');
+const parseBtn = document.getElementById('parseBtn');
+const clearBtn = document.getElementById('clearBtn');
+const downloadBtn = document.getElementById('downloadBtn');
+
+const fields = {
+  name: document.getElementById('name'),
+  role: document.getElementById('role'),
+  goals: document.getElementById('goals'),
+  actions: document.getElementById('actions'),
+  timeline: document.getElementById('timeline'),
+  support: document.getElementById('support')
+};
+
+let finalTranscript = '';
+let recognition = null;
+let recognizing = false;
+let mediaRecorder = null;
+let audioChunks = [];
+
+const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+
+function setStatus(text, live){
+  statusEl.textContent = text;
+  statusEl.classList.toggle('live', !!live);
+}
+
+function renderTranscript(interim){
+  transcriptEl.innerHTML = '';
+  const finalSpan = document.createElement('span');
+  finalSpan.textContent = finalTranscript;
+  transcriptEl.appendChild(finalSpan);
+  if(interim){
+    const interimSpan = document.createElement('span');
+    interimSpan.className = 'interim';
+    interimSpan.textContent = interim;
+    transcriptEl.appendChild(interimSpan);
+  }
+  if(!finalTranscript && !interim){
+    transcriptEl.innerHTML = '<span style="color:var(--ink-soft)">Nothing yet — start recording and speak.</span>';
+  }
+  transcriptEl.scrollTop = transcriptEl.scrollHeight;
+}
+
+async function startRecording(){
+  if(!SpeechRecognition){
+    setStatus('Speech recognition not supported in this browser. Try Chrome or Edge.');
+    return;
+  }
+  try{
+    const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+    audioChunks = [];
+    mediaRecorder = new MediaRecorder(stream);
+    mediaRecorder.ondataavailable = e => audioChunks.push(e.data);
+    mediaRecorder.onstop = () => {
+      const blob = new Blob(audioChunks, { type: 'audio/webm' });
+      playback.src = URL.createObjectURL(blob);
+      playback.style.display = 'block';
+      stream.getTracks().forEach(t => t.stop());
+    };
+    mediaRecorder.start();
+  }catch(err){
+    setStatus('Mic access denied or unavailable.');
+    return;
+  }
+
+  recognition = new SpeechRecognition();
+  recognition.continuous = true;
+  recognition.interimResults = true;
+  recognition.lang = 'en-US';
+
+  recognition.onresult = (event) => {
+    let interim = '';
+    for(let i = event.resultIndex; i < event.results.length; i++){
+      const chunk = event.results[i][0].transcript;
+      if(event.results[i].isFinal){
+        finalTranscript += chunk + ' ';
+        parseTranscript(finalTranscript);
+      }else{
+        interim += chunk;
+      }
+    }
+    renderTranscript(interim);
+  };
+
+  recognition.onerror = (e) => {
+    setStatus('Recognition error: ' + e.error);
+  };
+
+  recognition.onend = () => {
+    if(recognizing){
+      recognition.start(); // keep it alive through brief silences
+    }
+  };
+
+  recognition.start();
+  recognizing = true;
+  micBtn.classList.add('recording');
+  micBtn.setAttribute('aria-label', 'Stop recording');
+  setStatus('Listening…', true);
+}
+
+function stopRecording(){
+  recognizing = false;
+  if(recognition) recognition.stop();
+  if(mediaRecorder && mediaRecorder.state !== 'inactive') mediaRecorder.stop();
+  micBtn.classList.remove('recording');
+  micBtn.setAttribute('aria-label', 'Start recording');
+  setStatus('Stopped. Tap to record again.');
+}
+
+micBtn.addEventListener('click', () => {
+  if(recognizing){
+    stopRecording();
+  }else{
+    startRecording();
+  }
+});
+
+function markFilled(key){
+  const wrapper = document.getElementById('f-' + key);
+  if(wrapper) wrapper.classList.add('filled');
+}
+
+function setField(key, value){
+  if(!value) return;
+  value = value.trim().replace(/^[,.\s]+|[.\s]+$/g, '');
+  if(!value) return;
+  fields[key].value = value;
+  markFilled(key);
+}
+
+// Lightweight rule-based parser: looks for spoken cue phrases and grabs the
+// text that follows, up to the next cue phrase or end of transcript.
+function parseTranscript(text){
+  const cues = [
+    { key: 'name',     patterns: [/my name is/i, /this is/i] },
+    { key: 'role',     patterns: [/my (?:current )?role is/i, /my (?:current )?job is/i, /i work as/i] },
+    { key: 'goals',    patterns: [/my (?:development )?goals? (?:is|are)/i, /i want to/i, /one goal is/i] },
+    { key: 'actions',  patterns: [/action steps? (?:is|are)/i, /i will/i, /my plan is to/i] },
+    { key: 'timeline', patterns: [/timeline is/i, /by the end of/i, /within/i] },
+    { key: 'support',  patterns: [/support needed is/i, /i need/i, /i'll need/i] }
+  ];
+
+  // Build a list of {index, key} for every cue match found in the text.
+  let matches = [];
+  cues.forEach(cue => {
+    cue.patterns.forEach(re => {
+      const m = re.exec(text);
+      if(m){
+        matches.push({ index: m.index, endIndex: m.index + m[0].length, key: cue.key });
+      }
+    });
+  });
+
+  if(matches.length === 0) return;
+  matches.sort((a,b) => a.index - b.index);
+
+  // De-duplicate: keep only the first match per key found (avoid re-splitting
+  // as more speech streams in — later full re-parses on demand handle updates).
+  for(let i = 0; i < matches.length; i++){
+    const start = matches[i].endIndex;
+    const end = (i + 1 < matches.length) ? matches[i+1].index : text.length;
+    const value = text.slice(start, end);
+    setField(matches[i].key, value);
+  }
+}
+
+parseBtn.addEventListener('click', () => {
+  // Reset filled markers, then re-run the parser over the whole transcript.
+  Object.keys(fields).forEach(k => {
+    document.getElementById('f-' + k).classList.remove('filled');
+  });
+  parseTranscript(finalTranscript);
+  if(!finalTranscript.trim()){
+    setStatus('No transcript yet — record something first.');
+  }
+});
+
+clearBtn.addEventListener('click', () => {
+  finalTranscript = '';
+  renderTranscript('');
+  Object.values(fields).forEach(f => f.value = '');
+  Object.keys(fields).forEach(k => document.getElementById('f-' + k).classList.remove('filled'));
+  playback.style.display = 'none';
+  setStatus('Cleared. Tap to start.');
+});
+
+downloadBtn.addEventListener('click', () => {
+  const lines = [
+    'INDIVIDUAL DEVELOPMENT PLAN', '',
+    'Name: ' + fields.name.value,
+    'Current role: ' + fields.role.value,
+    'Development goals: ' + fields.goals.value,
+    'Action steps: ' + fields.actions.value,
+    'Timeline: ' + fields.timeline.value,
+    'Support needed: ' + fields.support.value
+  ];
+  const blob = new Blob([lines.join('\n')], { type: 'text/plain' });
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = 'idp.txt';
+  a.click();
+});
+
+if(!SpeechRecognition){
+  setStatus('This browser doesn\'t support live speech-to-text. Try Chrome or Edge.');
+}
+</script>
+</body>
+</html>
